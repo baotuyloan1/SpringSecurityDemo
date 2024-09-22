@@ -55,3 +55,7 @@ It's still a transformation function. It's a particular encoding, but it implies
 3. GrantedAuthority can be represented as either Authorities or Role
 4. Authorities is an action (verb) that the user can do in your application (read, write, delete, execute...)
 5. Role is a badge that's usually represented by a subject like admin, manager, client, visitor
+
+### Filter chain
+1. Can custom filter in filter chain by implement Filter (no guarantee your custom filter will only be called once) or extend OncePerRequestFilter (if you want to make sure your filter customer will only be called once)
+2. 
