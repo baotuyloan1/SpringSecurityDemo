@@ -5,8 +5,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class DemoController {
+public class HelloController {
 
+    // REST endpoint
     @GetMapping("/hello")
     public String hello(){
         var u = SecurityContextHolder.getContext().getAuthentication();
