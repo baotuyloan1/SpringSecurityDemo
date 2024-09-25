@@ -1,5 +1,6 @@
 package org.example.demo.overridingdefaultconfiguration.configs;
 
+import org.example.demo.overridingdefaultconfiguration.providers.CustomAuthenticationProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -13,7 +14,14 @@ import org.springframework.security.web.SecurityFilterChain;
 
 // #A
 @Configuration
+
 public class ProjectConfig {
+
+    private final CustomAuthenticationProvider authenticationProvider;
+
+    public ProjectConfig(CustomAuthenticationProvider authenticationProvider) {
+        this.authenticationProvider = authenticationProvider;
+    }
 
     // #B
     @Bean
@@ -33,6 +41,7 @@ public class ProjectConfig {
 
     /**
      * defining a SecurityFilterChain bean for customizing the handling of authentication and authorization
+     * can directly use the SecurityFilterChain bean to set both the UserDetailsService and the PasswordEncoder
      * @param http
      * @return
      * @throws Exception
@@ -43,6 +52,16 @@ public class ProjectConfig {
         http.authorizeHttpRequests(
                 c -> c.anyRequest().permitAll()
         );
+
+        http.authenticationProvider(authenticationProvider);
+        // Second way to implement UserDetailService
+//        var user = User.withUsername("Bao1")
+//                .password("12345")
+//                .authorities("read")
+//                .build();
+//        var userDetailsService = new InMemoryUserDetailsManager(user);
+//
+//        http.userDetailsService(userDetailsService);
         return http.build();
     }
 }

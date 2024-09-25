@@ -145,4 +145,173 @@ public class ProjectConfig {
 - In earlier Spring Security versions, you could apply configurations without a Customizer object by using a chaining syntax like this:
   - http.authorizeHttpRequests().anyRequest().authenticated()
 - The reason this approach has been left behind is that a Customizer object allows you more flexibility in moving the configuration where needed.
-- In the real world apps, the configurations can grow a lot. In such cases, the ability to move these configurations in separate classes helps you to keep the configurations easier to maintain and test.
+- In real world apps, the configurations can grow a lot. In such cases, the ability to move these configurations in separate classes helps you to keep the configurations easier to maintain and test.
+## Configuring in different ways
+- One of the confusing aspects of creating configurations with Spring Security is having multiple ways to configure the same thing. In this section, you'll learn alternatives for configuring UserDetailsService and PasswordEncoder.
+- It's essential to know the options you have.
+- It's also important that you understand hơ and when to use these in your application. 
+- We can directly use the SecurityFilterChain bean to set both the UserDetailsService and the PasswordEncoder
+```java
+    @Bean
+    public SecurityFilterChain configure(HttpSecurity http) throws Exception {
+        http.httpBasic(Customizer.withDefaults());
+        http.authorizeHttpRequests(
+                c -> c.anyRequest().permitAll()
+        );
+
+        var user = User.withUsername("Bao1")
+                .password("12345")
+                .authorities("read")
+                .build();
+        var userDetailsService = new InMemoryUserDetailsManager(user);
+
+        http.userDetailsService(userDetailsService);
+        return http.build();
+    }
+```
+- The UserDetailsService is now done locally inside the bean method creating the SecurityFilterChain
+- Full contents of the configuration class:
+```java
+@Configuration
+public class ProjectConfig {
+
+  @Bean
+  SecurityFilterChain configure(HttpSecurity http) 
+    throws Exception {
+ 
+    http.httpBasic(Customizer.withDefaults());
+
+    http.authorizeHttpRequests(
+        c -> c.anyRequest().authenticated()
+    );
+
+    var user = User.withUsername('john')            
+        .password('12345')
+        .authorities('read')
+        .build();
+
+    var userDetailsService =  new InMemoryUserDetailsManager(user);
+
+    http.userDetailsService(userDetailsService);     
+
+    return http.build();
+  }
+
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return NoOpPasswordEncoder.getInstance();
+  }
+}
+```
+- Any of these configuration options are correct. The first option, where we add the beans to the context, lets you inject the values in another class where you might potentially need them.
+- But if you don't need that for your case, the second option would be equally good.
+## Defining custom authentication logic
+- Spring Security components provide a lot of flexibility, offering many options when adapting them to the architecture of our application.
+- AuthenticationProvider implements the authentication logic and delegates to the UserDetailsService and PasswordEncoder for user and password management.
+- How to implement custom authentication logic with AuthenticationProvider ?
+- Spring Security architecture is loosely coupled with fine-grained responsibilities.
+- That design is one of the things that makes Spring Security flexible and easy to integrate with your applications.
+![img.png](img.png)
+- The AuthenticationProvider implements the authentication logic. it receives the request from the AuthenticationManager and delegates finding the user to a UserDetailsService, verifying the password to a PasswordEncoder.
+```java
+@Component
+public class CustomAuthenticationProvider implements AuthenticationProvider {
+
+  @Override
+  public Authentication authenticate (Authentication authentication) throws AuthenticationException {
+
+    // authentication logic here
+  }
+
+  @Override
+  public boolean supports(Class<?> authenticationType) {
+
+    // type of the Authentication implementation here
+  }
+}
+```
+- The authenticate method represents all the logic for authentication, so we'll add an implementation like this:
+```java
+@Override
+public Authentication authenticate(
+        Authentication authentication)
+        throws AuthenticationException {
+
+  String username = authentication.getName();      
+  String password = String.valueOf(
+          authentication.getCredentials());
+
+  if ("Bao".equals(username) &&"12345".equals(password)) {
+    return new UsernamePasswordAuthenticationToken(
+            username,
+            password,
+            Arrays.asList());
+  } else {
+    throw new AuthenticationCredentialsNotFoundException('Error!');
+  }
+
+}
+```
+- The getName() method is inherited by Authentication from the Principal interface.
+- This condition generally calls UserDetailsService and PasswordEncoder to test the username and password.
+- Here the condition of the if-else clause is replacing the responsibilities of UserDetailsService and PasswordEncoder.
+- You are not required to use the two beans, but if you work with users and passwords for authentication, I strongly suggest you separate the logic of their management.
+- Apply it as the Spring Security architecture designed it, even when you override the authentication implementation.
+- You might find it useful to replace the authentication logic by implementing your own AuthenticationProvider
+```java
+@Override
+  public Authentication authenticate(
+     Authentication authentication) 
+       throws AuthenticationException {
+
+      String username = authentication.getName();
+      String password = String.valueOf(authentication.getCredentials());
+
+      if ("Bao".equals(username) && 
+          "12345".equals(password)) {
+        return new UsernamePasswordAuthenticationToken(
+             username, password, Arrays.asList());
+      } else {
+        throw new AuthenticationCredentialsNotFoundException("Invalid username or password");
+      }
+    }
+
+    @Override
+    public boolean supports(Class<?> authenticationType) {
+        return UsernamePasswordAuthenticationToken
+                   .class
+                   .isAssignableFrom(authenticationType);
+    }
+```
+- In the configuration class, you can register the AuthenticationProvider using the HttpSecurity authenticationProvider() method
+```java
+@Configuration
+public class ProjectConfig {
+
+  private final CustomAuthenticationProvider authenticationProvider;
+
+  public ProjectConfig(
+    CustomAuthenticationProvider authenticationProvider) {
+
+    this.authenticationProvider = authenticationProvider;
+  }
+
+  @Bean
+  SecurityFilterChain configure(HttpSecurity http) throws Exception {
+    http.httpBasic(Customizer.withDefaults());
+       
+    http.authenticationProvider(authenticationProvider);
+
+    http.authorizeHttpRequests(
+      c -> c.anyRequest().authenticated()
+    );
+
+    return http.build();
+  }
+}
+```
+- call api : curl -u Bao:12345 http://localhost:8080/hello
+## Using multiple configuration classes
+- good practice to separate the responsibilities even for the configuration classes.
+- It's always a good practice to have only one class per responsibility.
+- For example: UserManagementConfiguration and WebAuthorizationConfig
