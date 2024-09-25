@@ -1,3 +1,9 @@
+## This project covers:
+- Creating your first project with Spring Security
+- Designing simple functionalities using the basic components for authentication and authorization.
+- Applying the basic contracts(interface) and understanding how they are correlated.
+- Writing custom implementations for primary responsibilities.
+- Overriding Spring Boot's default configuration for Spring Security.
 ## special information :
 Java 10 introduced the reserved type name java. You can only use it for local declarations
 ## Overriding default configurations
