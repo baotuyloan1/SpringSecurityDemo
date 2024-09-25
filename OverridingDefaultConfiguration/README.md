@@ -315,3 +315,53 @@ public class ProjectConfig {
 - good practice to separate the responsibilities even for the configuration classes.
 - It's always a good practice to have only one class per responsibility.
 - For example: UserManagementConfiguration and WebAuthorizationConfig
+```java
+@Configuration
+public class UserManagementConfig {
+
+  @Bean
+  public UserDetailsService userDetailsService() {
+    var userDetailsService = new InMemoryUserDetailsManager();
+
+    var user = User.withUsername('john')
+                .password('12345')
+                .authorities('read')
+                .build();
+
+    userDetailsService.createUser(user);
+    return userDetailsService;
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return NoOpPasswordEncoder.getInstance();
+  }
+}
+```
+- In this case, the UserManagementConfig class only contains two beans responsible for user management: UserDetailService and PasswordEncoder
+```java
+@Configuration
+public class WebAuthorizationConfig {
+
+  @Bean
+  SecurityFilterChain configure(HttpSecurity http) 
+    throws Exception {
+
+    http.httpBasic(Customizer.withDefaults());
+
+    http.authorizeHttpRequests(
+        c -> c.anyRequest().authenticated()
+    );
+
+    return http.build();
+  }
+}
+```
+- WebAuthorizationConfig class needs to define a bean of type SecurityFilterChain to config the authentication and the authentication rules.
+## Summary:
+- Spring Boot provides some default configurations when you add Spring Security to the dependencies of the application.
+- You implement the following basic components for authentication and authorization rules: UserDetailsService, PasswordEncoder and AuthenticationProvider.
+- You can define users with User class. A user should at least have a username, a password and an authority. Authorities are actions that you allow a user to do in the context of the application.
+- A simple implementation of UserDetailsService that Spring Security provides is InMemoryUserDetailsManager. You can add users to such an instance of UserDetailsService to manage the user in the application's memory.
+- The NoOPPasswordEncoder is an implementation of the PasswordEncoder contract (interface)that uses passwords in cleartext. This sample is good for learning examples and (maybe) proofs of concept, but not for production-ready application.
+- There are multiple ways to write configurations,
