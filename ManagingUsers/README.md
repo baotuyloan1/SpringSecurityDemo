@@ -484,5 +484,10 @@ public UserDetailsService userDetailsService(DataSource dataSource) {
 }
 ```
 In the same way, we can change all the queries used by the JdbcDetailsManager implementation.
-# Using an LdapUserDetailsManager for user management
-- Spring Security also offers an implementation of UserDetailsManager for LDAP. Even if it is less popular than the JdbcUserDetailsManager
+
+**SUMMARY**:
+- The UserDetails interface is the contract you use to describe a user in Spring Security.
+- The UserDetailsService interface is the contract that Spring Security expects you to implement in the authentication architecture to describe the way the application obtains user details.
+- The UserDetailsManager interface extends UserDetailsService and adds the behavior related to creating, changing, or deleting a user.
+- Spring Security provides a few implementations of UserDetailsManager contract. Among these are InMemoryUserDetailsManager, JdbcUserDetailsManager, and LdapUserDetailsManager.
+- The JdbcUserDetailsManager class has the advantage of directly using JDBC and does not lock the application into other frameworks.
